@@ -1,0 +1,10 @@
+services:
+  web:
+    container_name: tinyhost
+    build: .
+    ports:
+      - "9986:3000"
+    volumes:
+      - type: bind
+        source: ./data
+        target: /data

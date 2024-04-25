@@ -1,0 +1,27 @@
+{
+  "name": "tinyhost",
+  "version": "0.1.0",
+  "description": "A tiny media host",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "node .",
+    "serve": "node ."
+  },
+  "keywords": [
+    "media",
+    "host"
+  ],
+  "author": "naughtyfinch",
+  "license": "GPL-3.0-only",
+  "dependencies": {
+    "@fastify/multipart": "^8.2.0",
+    "@fastify/send": "^2.1.0",
+    "@fastify/static": "^7.0.3",
+    "axios": "^1.6.8",
+    "dotenv": "^16.4.5",
+    "fastify": "^4.26.2",
+    "fs-extra": "^11.2.0",
+    "nanoid": "^5.0.7"
+  }
+}

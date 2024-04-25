@@ -1,0 +1,13 @@
+# Dependency directories
+node_modules/
+
+# Optional npm cache directory
+.npm
+
+# OS files
+.DS_Store
+
+# App specific
+media/
+data/
+.env
