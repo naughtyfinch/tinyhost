@@ -15,6 +15,7 @@
   "author": "naughtyfinch",
   "license": "GPL-3.0-only",
   "dependencies": {
+    "@fastify/mongodb": "^8.0.0",
     "@fastify/multipart": "^8.2.0",
     "@fastify/send": "^2.1.0",
     "@fastify/static": "^7.0.3",

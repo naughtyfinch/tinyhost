@@ -1,12 +1,14 @@
 import Fastify from "fastify";
 import fastifyStatic from "@fastify/static";
 import fastifyMultipart from "@fastify/multipart";
+import fastifyMongodb from "@fastify/mongodb";
 import path from "path";
 import fs from "fs-extra";
 import { customAlphabet } from "nanoid";
 import { pipeline } from "node:stream";
 import util from "node:util";
 import axios from "axios";
+import crypto from "crypto";
 
 const pump = util.promisify(pipeline);
 
@@ -26,6 +28,12 @@ function getFilepath(fileExtension) {
 export async function serve(port, mediaFolder) {
   const fastify = Fastify({
     logger: true,
+  });
+
+  fastify.register(fastifyMongodb, {
+    forceClose: true,
+    url: process.env.MONGO_URL,
+    database: process.env.MONGO_DB_NAME,
   });
 
   fastify.register(fastifyMultipart, {
@@ -64,9 +72,18 @@ export async function serve(port, mediaFolder) {
     await fs.ensureDir(path.dirname(absFilepath));
     await pump(data.file, fs.createWriteStream(absFilepath));
 
-    reply.send({
-      path: filepath,
-    });
+    const { exists, url } = await isExisting(absFilepath, this.mongo.db);
+    if (exists) {
+      // Delete the new file
+      await fs.rm(absFilepath);
+      reply.send({ path: url });
+    } else {
+      // Save to DB
+      await save(absFilepath, filepath, this.mongo.db);
+      reply.send({
+        path: filepath,
+      });
+    }
   });
 
   fastify.post("/fetchFromUrl", async function (req, reply) {
@@ -79,9 +96,21 @@ export async function serve(port, mediaFolder) {
     await fs.ensureDir(path.dirname(absFilepath));
     await downloadImage(url, absFilepath);
 
-    reply.send({
-      path: filepath,
-    });
+    const { exists, url: existingUrl } = await isExisting(
+      absFilepath,
+      this.mongo.db
+    );
+    if (exists) {
+      // Delete the new file
+      await fs.rm(absFilepath);
+      reply.send({ path: existingUrl });
+    } else {
+      // Save to DB
+      await save(absFilepath, filepath, this.mongo.db);
+      reply.send({
+        path: filepath,
+      });
+    }
   });
 
   // Run the server!
@@ -107,5 +136,40 @@ async function downloadImage(url, filepath) {
   return new Promise((resolve, reject) => {
     writer.on("finish", resolve);
     writer.on("error", reject);
+  });
+}
+
+async function isExisting(filepath, mongodb) {
+  const filesize = (await fs.stat(filepath)).size;
+  const result = await mongodb.collection("files").findOne({ size: filesize });
+  if (result) {
+    const filehash = await getFileHash(filepath);
+    if (filehash === result.hash) {
+      // Same file found. Return the existing URL
+      return { exists: true, url: result.url };
+    }
+  } else {
+    return { exists: false };
+  }
+}
+
+async function save(asbFilepath, filepath, mongodb) {
+  const filesize = (await fs.stat(asbFilepath)).size;
+  const filehash = await getFileHash(asbFilepath);
+  await mongodb.collection("files").insertOne({
+    url: filepath,
+    size: filesize,
+    hash: filehash,
+    addedOn: new Date().getTime(),
+  });
+}
+
+function getFileHash(filepath) {
+  return new Promise((resolve, reject) => {
+    const hash = crypto.createHash("sha256");
+    const rs = fs.createReadStream(filepath);
+    rs.on("error", reject);
+    rs.on("data", (chunk) => hash.update(chunk));
+    rs.on("end", () => resolve(hash.digest("hex")));
   });
 }
