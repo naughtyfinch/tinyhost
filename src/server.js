@@ -94,7 +94,14 @@ export async function serve(port, mediaFolder) {
     const absFilepath = path.join(mediaFolder, filepath);
 
     await fs.ensureDir(path.dirname(absFilepath));
-    await downloadImage(url, absFilepath);
+    try {
+      await downloadImage(url, absFilepath);
+    } catch (error) {
+      req.log.warn("Error downloading file: " + error);
+      reply
+        .code(400)
+        .send({ error: "Error download from url: " + error.message });
+    }
 
     const { exists, url: existingUrl } = await isExisting(
       absFilepath,
