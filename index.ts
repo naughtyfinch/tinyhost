@@ -9,7 +9,7 @@ const port = process.env.PORT ?? 3000;
 
 function createUploader() {
   const storage = multer.diskStorage({
-    destination: path.join(process.cwd(), "temp"),
+    destination: getTempDir(),
     filename: function (_req, file, cb) {
       cb(null, getFilename(file));
     },
