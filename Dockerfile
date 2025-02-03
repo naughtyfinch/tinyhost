@@ -13,6 +13,7 @@ RUN bun install
 EXPOSE 3000
 
 ENV UPLOADS_DIR=/uploads
+ENV TEMP_DIR=/temp
 
 # Run the server when the container launches
 CMD ["bun", "index.js"]
