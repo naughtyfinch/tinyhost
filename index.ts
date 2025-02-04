@@ -21,7 +21,7 @@ function createApp() {
   const app = express();
   app.use(cors());
   app.options("*", cors());
-  app.use("/stream", express.static(path.join(process.cwd(), "uploads")));
+  app.use("/stream", express.static(getUploadsDir()));
   app.use(express.json());
   return app;
 }
