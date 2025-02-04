@@ -79,6 +79,22 @@ app.post("/upload", upload.single("file"), (req, res) => {
   }
 });
 
+app.post("/delete", (req, res) => {
+  const bucket = req.query.bucket;
+  const filepath = req.query.filepath;
+  if (!hasText(bucket))
+    return createBadRequest(res, ["mandatory parameter 'bucket' is missing"]);
+  if (!hasText(filepath))
+    return createBadRequest(res, ["mandatory parameter 'filepath' is missing"]);
+  const fullpath = path.join(getUploadsDir(), bucket, filepath);
+  if (!fs.pathExistsSync(fullpath)) {
+    res.status(404).send();
+  } else {
+    fs.rmSync(fullpath);
+    res.end();
+  }
+});
+
 fs.ensureDirSync(getTempDir());
 fs.ensureDirSync(getUploadsDir());
 
