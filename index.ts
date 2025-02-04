@@ -6,6 +6,9 @@ import { getTempDir, getUploadsDir, hasElements, hasText } from "./utils";
 import fs from "fs-extra";
 
 const port = process.env.PORT ?? 3000;
+const imageMimeTypes = ["image/jpeg"];
+const videoMimeTypes = ["video/mp4"];
+const allowedMimeTypes = [...imageMimeTypes, ...videoMimeTypes];
 
 function createUploader() {
   const storage = multer.diskStorage({
@@ -14,7 +17,12 @@ function createUploader() {
       cb(null, getFilename(file));
     },
   });
-  return multer({ storage });
+  return multer({
+    storage,
+    fileFilter: function (_req, file, cb) {
+      cb(null, allowedMimeTypes.includes(file.mimetype));
+    },
+  });
 }
 
 function createApp() {
@@ -58,7 +66,9 @@ const app = createApp();
 app.post("/upload", upload.single("file"), (req, res) => {
   const filename = getFilename(req.file);
   if (!hasText(filename))
-    return createBadRequest(res, ["mandatory parameter 'file' is missing"]);
+    return createBadRequest(res, [
+      "mandatory parameter 'file' is missing or invalid",
+    ]);
 
   const tempPath = getTempFilepath(filename);
   try {
