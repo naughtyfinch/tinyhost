@@ -22,6 +22,7 @@ function createApp() {
   app.use(cors());
   app.options("*", cors());
   app.use("/stream", express.static(path.join(process.cwd(), "uploads")));
+  app.use(express.json());
   return app;
 }
 
@@ -40,8 +41,7 @@ function getFilename(file: any) {
 }
 
 function createBadRequest(res: any, errors: string[]) {
-  res.setHeader("Content-Type", "application/json");
-  res.status(400).send(JSON.stringify(errors));
+  res.status(400).json(errors);
 }
 
 function getTempFilepath(filename: string) {
@@ -91,6 +91,31 @@ app.post("/delete", (req, res) => {
     res.status(404).send();
   } else {
     fs.rmSync(fullpath);
+    res.end();
+  }
+});
+
+app.post("/move", (req, res) => {
+  const bucket = req.body.bucket;
+  const source = req.body.source;
+  const destination = req.body.destination;
+  if (!hasText(bucket))
+    return createBadRequest(res, ["mandatory parameter 'bucket' is missing"]);
+  if (!hasText(source))
+    return createBadRequest(res, ["mandatory parameter 'source' is missing"]);
+  if (!hasText(destination))
+    return createBadRequest(res, [
+      "mandatory parameter 'destination' is missing",
+    ]);
+  const fullSourcePath = path.join(getUploadsDir(), bucket, source);
+  const fullDestinationPath = path.join(getUploadsDir(), bucket, destination);
+  if (!fs.pathExistsSync(fullSourcePath)) {
+    res.status(404).send();
+  } else if (fs.pathExistsSync(fullDestinationPath)) {
+    createBadRequest(res, ["file already exists at destination"]);
+  } else {
+    fs.ensureDirSync(path.dirname(fullDestinationPath));
+    fs.moveSync(fullSourcePath, fullDestinationPath);
     res.end();
   }
 });
